@@ -9,9 +9,9 @@ import (
 
 	mapreduce "../../mr/interface"
 	"github.com/coreos/go-etcd/etcd"
+	"github.com/plutoshe/taskgraph/controller"
+	"github.com/plutoshe/taskgraph/example/topo"
 	"github.com/plutoshe/taskgraph/filesystem"
-	"github.com/taskgraph/taskgraph/controller"
-	"github.com/taskgraph/taskgraph/example/topo"
 	"github.com/taskgraph/taskgraph/framework"
 )
 
@@ -19,44 +19,42 @@ import (
 func main() {
 	programType := flag.String("type", "", "(c) controller, (m) mapper, (s) shuffle, or (r) reducer")
 	job := flag.String("job", "mapreduce+mapper", "job name")
-	mapperNum := flag.Int("mapperNum", 5, "mapperNum")
-	WorkerNum := flag.Int("WorkerNum", 1, "WorkerNum")
-	reducerNum := flag.Int("reducerNum", 3, "reducerNum")
-	// azureAccountName := flag.String("azureAccountName", "spluto", "azureAccountName")
-	azureAccountKey := flag.String("azureAccountKey", "", "azureAccountKey")
+	mapperNum := flag.Int("mapperNum", 1, "mapperNum")
+	WorkerNum := flag.Int("WorkerNum", 2, "WorkerNum")
+	reducerNum := flag.Int("reducerNum", 10, "reducerNum")
+	//      azureAccountName := flag.String("azureAccountName", "spluto", "azureAccountName")
+	azureAccountKey := flag.String("azureAccountKey", "a", "azureAccountKey")
 	// outputDir := flag.String("outputDir", "0newmapreducepathformapreduce000", "outputDir")
-	azureAccountKey = azureAccountKey
+
 	flag.Parse()
 	if *job == "" {
 		log.Fatalf("Please specify a job name")
 	}
-	// if *azureAccountKey == "" {
-	// 	log.Fatalf("Please specify azureAccountKey")
-	// }
+	if *azureAccountKey == "" {
+		log.Fatalf("Please specify azureAccountKey")
+	}
 
 	azureClient := filesystem.NewLocalFSClient()
-	// if err != nil {
-	// 	log.Fatalf("%v", err)
-	// }
 
 	mapperWorkDir := make([]mapreduce.WorkConfig, 0)
 
-	for inputM := 1; inputM <= 2; inputM++ {
-		inputFile := "/Users/plutoshe/Desktop/Work/Intern/GO/MyTaskgraph/mr/example/eee" + strconv.Itoa(inputM) + ".txt"
+	for inputM := 1; inputM <= *mapperNum; inputM++ {
+		// w := fmt.Sprintf("%03d", inputM+11)
+		inputFile := "eee1.txt"
 		newWork := mapreduce.WorkConfig{}
 		newWork.InputFilePath = []string{inputFile}
-		newWork.OutputFilePath = []string{"/Users/plutoshe/Desktop/Work/Intern/GO/MyTaskgraph/mr/example/mapreducerprocesstemporaryresult"}
+		newWork.OutputFilePath = []string{"./mapreducerprocesstemporaryresult"}
 		// newWork.UserProgram = []string{
-		// 	"docker stop mr" + strconv.Itoa(inputM),
-		// 	"docker rm mr" + strconv.Itoa(inputM),
-		// 	"docker run -d -p " + strconv.Itoa(20000+inputM) + ":10000 --name mr" + strconv.Itoa(inputM) + " plutoshe/mr:mr-new go run main.go -type m",
+		//      "docker stop mr" + strconv.Itoa(inputM),
+		//      "docker rm mr" + strconv.Itoa(inputM),
+		//      "docker run -d -p " + strconv.Itoa(20000+inputM) + ":10000 --name mr" + strconv.Itoa(inputM) + " plutoshe/mr:mr-new go run main.go -type m",
 		// }
 		newWork.UserProgram = []string{
-			"b go run ../sample_user_server_go/wordCount/sample_server.go -type m -port " + strconv.Itoa(20000+inputM),
+			"b ../sample_user_server_go/processSentence/processSentence_server -type m -port " + strconv.Itoa(40000+inputM),
 		}
 		//../sample_mapper_user_program/sample_mapper_server
 		// 192.168.59.103
-		newWork.UserServerAddress = "localhost:" + strconv.Itoa(20000+inputM)
+		newWork.UserServerAddress = "localhost:" + strconv.Itoa(40000+inputM)
 		newWork.WorkType = "Mapper"
 		newWork.SupplyContent = []string{""}
 		mapperWorkDir = append(mapperWorkDir, newWork)

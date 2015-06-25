@@ -6,6 +6,11 @@ service Mapper {
   rpc GetEmitResult(MapperRequest) returns (stream MapperResponse) {}
 }
 
+service MapperStream {
+  rpc GetStreamEmitResult(stream MapperRequest) returns (stream MapperResponse) {}
+}
+
+
 message MapperRequest {
   string key = 1;
   string value = 2;
@@ -19,6 +24,10 @@ message MapperResponse {
 
 service Reducer {
   rpc GetCollectResult(ReducerRequest) returns (stream ReducerResponse) {}
+}
+
+service ReducerStream {
+  rpc GetStreamCollectResult(stream ReducerRequest) returns (stream ReducerResponse) {}
 }
 
 message ReducerRequest {

@@ -1,8 +1,9 @@
-package server
+package main
 
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"strconv"
@@ -62,7 +63,42 @@ func (*server) GetEmitResult(KvPair *pb.MapperRequest, stream pb.Mapper_GetEmitR
 	return nil
 }
 
-func Main() {
+func (*server) GetStreamEmitResult(stream pb.MapperStream_GetStreamEmitResultServer) error {
+	for {
+		in, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if in.Value == "Stop" && in.Key == "Stop" {
+			// server.Stop()
+			res := &pb.MapperResponse{
+				Key:   "Stop",
+				Value: "Stop",
+			}
+			if err := stream.Send(res); err != nil {
+				return err
+			}
+			defer s.Stop()
+			fmt.Println("Stop")
+			return nil
+		}
+		chop := strings.Split(in.Key, " ")
+		for _, s := range chop {
+			res := &pb.MapperResponse{
+				Key:   s,
+				Value: "1",
+			}
+			if err := stream.Send(res); err != nil {
+				return err
+			}
+		}
+	}
+}
+
+func main() {
 	flag.Parse()
 	if *tp == "" {
 		log.Fatalln("Need a server type m/r")
@@ -76,7 +112,7 @@ func Main() {
 
 	if *tp == "m" {
 		s = grpc.NewServer()
-		pb.RegisterMapperServer(s, &server{})
+		pb.RegisterMapperStreamServer(s, &server{})
 		s.Serve(lis)
 	} else {
 		s = grpc.NewServer()

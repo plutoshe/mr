@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"strings"
 
+	pb "../proto"
 	"github.com/coreos/go-etcd/etcd"
 	"github.com/golang/protobuf/proto"
-	pb "github.com/plutoshe/mr/proto"
 	"github.com/taskgraph/taskgraph"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -91,10 +91,11 @@ func (t *workerTask) startNewUserServer(cmdline []string) {
 	// argv := []string{"-port", strconv.FormatUint(t.userSeverPort, 10)}
 	for i := 0; i < len(cmdline); i++ {
 		parts := strings.Fields(cmdline[i])
-		head := parts[0]
-		parts = parts[1:len(parts)]
+		background := parts[0]
+		head := parts[1]
+		parts = parts[2:len(parts)]
 		cmd := exec.Command(head, parts...)
-		if head == "docker" && parts[0] == "run" {
+		if background == "b" {
 			err := cmd.Start()
 			if err != nil {
 				log.Println(err)
@@ -109,12 +110,13 @@ func (t *workerTask) startNewUserServer(cmdline []string) {
 
 }
 
-func (t *workerTask) getNewMapperUserServer(address string) pb.MapperClient {
+func (t *workerTask) getNewMapperUserServer(address string) pb.MapperStreamClient {
+	t.logger.Println(address)
 	conn, err := grpc.Dial(address)
 	if err != nil {
 		t.logger.Fatalf("did not connect: %v", err)
 	}
-	return pb.NewMapperClient(conn)
+	return pb.NewMapperStreamClient(conn)
 }
 
 func (t *workerTask) getNewReducerUserServer(address string) pb.ReducerClient {
@@ -246,26 +248,6 @@ func (t *workerTask) Clean(path string) {
 	}
 }
 
-func (t *workerTask) emitKvPairs(userClient pb.MapperClient, str string, value string, stop bool) {
-	stream, err := userClient.GetEmitResult(context.Background(), &pb.MapperRequest{Key: str, Value: value})
-	if err != nil {
-		t.logger.Fatalf("could not access the user program server : %v", err)
-	}
-	if !stop {
-		for {
-			feature, err := stream.Recv()
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				log.Fatalf("%v.GetEmitResult, %v", userClient, err)
-				return
-			}
-			t.Emit(feature.Key, feature.Value)
-		}
-	}
-}
-
 func (t *workerTask) getWorkID() string {
 	requestWorkStatus, err := t.etcdClient.Get(MapreduceTaskStatusPath(t.config.AppName, t.taskID, "workStatus"), false, false)
 	if err != nil {
@@ -274,7 +256,7 @@ func (t *workerTask) getWorkID() string {
 	return requestWorkStatus.Node.Value
 }
 
-func (t *workerTask) mapperProcedure(ctx context.Context, workID string, workConfig WorkConfig, userClient pb.MapperClient) {
+func (t *workerTask) mapperProcedure(ctx context.Context, workID string, workConfig WorkConfig, userClient pb.MapperStreamClient) {
 	t.logger.Println("In mapper procedure")
 	var i uint64
 	t.mapperWriteCloser = make([]bufio.Writer, 0)
@@ -290,11 +272,33 @@ func (t *workerTask) mapperProcedure(ctx context.Context, workID string, workCon
 		t.mapperWriteCloser = append(t.mapperWriteCloser, *bufio.NewWriterSize(tmpWrite, t.config.WriterBufferSize))
 	}
 
+	waitc := make(chan struct{})
+	stream, err := userClient.GetStreamEmitResult(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+	go func() {
+		for {
+			in, err := stream.Recv()
+			t.logger.Println(in)
+			if err != nil && err != io.EOF {
+				log.Fatalf("Failed to receive a note : %v", err)
+			}
+			if err == io.EOF || (in.Key == "Stop" && in.Value == "Stop") {
+				// read done.
+				close(waitc)
+				return
+			}
+
+			t.Emit(in.Key, in.Value)
+		}
+	}()
+
 	// Input file loading
 	for readFileID := 0; readFileID < len(workConfig.InputFilePath); readFileID++ {
 		mapperReaderCloser, err := t.config.FilesystemClient.OpenReadCloser(workConfig.InputFilePath[readFileID])
 		if err != nil {
-			t.logger.Printf("MapReduce : get mapreduce filesystem client reader failed, ", err)
+			t.logger.Fatalf("MapReduce : get mapreduce filesystem client reader failed, ", err)
 		}
 
 		var str string
@@ -302,22 +306,21 @@ func (t *workerTask) mapperProcedure(ctx context.Context, workID string, workCon
 
 		for err != io.EOF {
 			str, err = bufioReader.ReadString('\n')
-
 			if err != io.EOF && err != nil {
 				t.logger.Fatalf("MapReduce : mapper read Error, ", err)
 			}
 			if err != io.EOF {
 				str = str[:len(str)-1]
 			}
-			t.emitKvPairs(userClient, str, "", false)
+			stream.Send(&pb.MapperRequest{Key: str, Value: ""})
 		}
 		// stop the reader of corresponding file
 		mapperReaderCloser.Close()
 	}
 
 	// stop user program grpc client
-	t.emitKvPairs(userClient, "Stop", "Stop", true)
-
+	stream.Send(&pb.MapperRequest{Key: "Stop", Value: "Stop"})
+	<-waitc
 	//flush output result
 	for i = 0; i < t.config.ReducerNum; i++ {
 		t.mapperWriteCloser[i].Flush()
