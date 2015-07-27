@@ -7,14 +7,6 @@ Mapper Config:
 
 	"InputFile" : [a set of input file path], 
 
-	// Indicate filesystem type and details
-	"FSType" : "Azure"/"Local", 
-	"AzureConfig" : { 
-		"AzureAccount" : "accountName", 
-		"AzureKey" : "accountKey"
-	}
-
-
 	"ReducerNum" : Number,
 	"WorkerNum" : Number, 
 	"Tolerance" : 0,

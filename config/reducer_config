@@ -5,13 +5,6 @@ Reducer Config:
 	"ETCDBIN" : "etcd executive file path"
 	"AppName" : "appName", // give the name of mapper in etcd 
 
-	// Indicate filesystem type and details
-	"FSType" : "Azure"/"Local", 
-	"AzureConfig" : { 
-		"AzureAccount" : "accountName", 
-		"AzureKey" : "accountKey"
-	}
-
 	"MapperWorkNum" : Number,
 	"ReducerNum" : Number,
 	"WorkerNum" : Number, 

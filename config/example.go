@@ -14,7 +14,6 @@ import (
 	"github.com/coreos/go-etcd/etcd"
 	"github.com/plutoshe/taskgraph/controller"
 	"github.com/plutoshe/taskgraph/example/topo"
-	"github.com/plutoshe/taskgraph/filesystem"
 	"github.com/plutoshe/taskgraph/framework"
 
 	mapreduce "../../mr/interface"
@@ -47,7 +46,6 @@ type Configuration struct {
 }
 
 var (
-	fsClient       filesystem.Client
 	mapperWorkDir  []mapreduce.WorkConfig
 	reducerWorkDir []mapreduce.WorkConfig
 	mapperConfig   mapreduce.MapreduceConfig
@@ -57,26 +55,6 @@ var (
 	finshedProgram chan struct{}
 	sourceConfig   = flag.String("source", "", "The configuration file")
 )
-
-func fsInit() {
-	if config.FSType == "Azure" {
-		blobServiceBaseUrl := "core.chinacloudapi.cn"
-		apiVersion := "2014-02-14"
-		userHttps := true
-		fsClient, err = filesystem.NewAzureClient(
-			config.AzureConfig.AzureAccount,
-			config.AzureConfig.AzureKey,
-			blobServiceBaseUrl,
-			apiVersion,
-			userHttps,
-		)
-
-	}
-	if config.FSType == "Local" {
-		fsClient = filesystem.NewLocalFSClient()
-
-	}
-}
 
 func mapperWorkInit() {
 	mapperWorkDir = make([]mapreduce.WorkConfig, 0)
@@ -139,34 +117,30 @@ func clean() {
 func mapperTaskInit() {
 	etcdURLs := []string{"http://localhost:4001"}
 	clean()
-	fsInit()
 	mapperWorkInit()
 
 	mapperConfig = mapreduce.MapreduceConfig{
 		ReducerNum: config.ReducerNum,
 		WorkerNum:  config.WorkerNum,
 
-		AppName:          config.AppName,
-		EtcdURLs:         etcdURLs,
-		FilesystemClient: fsClient,
-		WorkDir:          mapperWorkDir,
+		AppName:  config.AppName,
+		EtcdURLs: etcdURLs,
+		WorkDir:  mapperWorkDir,
 	}
 }
 
 func reducerTaskInit() {
 	etcdURLs := []string{"http://localhost:4001"}
 	clean()
-	fsInit()
 	reducerWorkInit()
 
 	reducerConfig = mapreduce.MapreduceConfig{
 		ReducerNum: config.ReducerNum,
 		WorkerNum:  config.WorkerNum,
 
-		AppName:          config.AppName,
-		EtcdURLs:         etcdURLs,
-		FilesystemClient: fsClient,
-		WorkDir:          reducerWorkDir,
+		AppName:  config.AppName,
+		EtcdURLs: etcdURLs,
+		WorkDir:  reducerWorkDir,
 	}
 }
 
