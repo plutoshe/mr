@@ -61,10 +61,6 @@ func (t *masterTask) Init(taskID uint64, framework taskgraph.Framework) {
 
 	t.finishedWorkNum = 0
 
-	// for i := range t.notifyChanArr {
-	// 	t.notifyChanArr[i] = make(bool, 1)
-
-	// }
 	t.exitChan = make(chan struct{})
 	err := t.initializeEtcd()
 	if err != nil {

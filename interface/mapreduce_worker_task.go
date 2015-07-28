@@ -22,7 +22,6 @@ type workerTask struct {
 	logger             *log.Logger
 	taskID             uint64
 	etcdClient         *etcd.Client
-	userSeverPort      uint64
 	mapperWriteCloser  []bufio.Writer
 	reducerWriteCloser bufio.Writer
 	shuffleContainer   map[string][]string //store temporary shuffle results
@@ -43,12 +42,12 @@ type mapperEmitKV struct {
 	Value string `json:"value"`
 }
 
+// Init initializes the setting of worker task
 func (t *workerTask) Init(taskID uint64, framework taskgraph.Framework) {
 	t.logger = log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lshortfile)
 	t.taskID = taskID
 	t.framework = framework
 	t.etcdClient = etcd.NewClient(t.config.EtcdURLs)
-	t.userSeverPort = 10000 + taskID
 
 	//channel init
 	t.stopGrabTaskForEveryEpoch = make(chan bool, 1)
@@ -62,6 +61,7 @@ func (t *workerTask) Init(taskID uint64, framework taskgraph.Framework) {
 	go t.run()
 }
 
+// Run invokes elusive function by the channel received
 func (t *workerTask) run() {
 	for {
 		select {
@@ -87,7 +87,7 @@ func (t *workerTask) processWork(ctx context.Context, fromID uint64, method stri
 	resp, ok := output.(*pb.WorkConfigResponse)
 	t.logger.Println(resp)
 	if !ok {
-		t.logger.Panicf("doDataRead, corruption in proto.Message.")
+		t.logger.Fatalln("doDataRead, corruption in proto.Message.")
 	}
 	if resp == nil {
 		return
@@ -115,10 +115,11 @@ func (t *workerTask) processWork(ctx context.Context, fromID uint64, method stri
 			workConfig.SupplyContent = strings.Split(resp.Value[i], delim)
 		}
 	}
+
 	// start user grpc server by cmd line,
 	t.startNewUserServer(workConfig.UserProgram)
-	t.logger.Println("begin process work", workConfig)
-	t.logger.Println(workConfig.WorkType)
+	t.logger.Println("begin process", workConfig.WorkType, " work, config sets as ", workConfig)
+
 	// Determined by the work type, start relative processing procedure
 	switch workConfig.WorkType {
 	case "Mapper":
@@ -155,7 +156,7 @@ func (t *workerTask) grabWork(ctx context.Context, method string, stop chan bool
 	t.datarequestForWork(ctx, method)
 
 	// afterwards, watch etcd worker attribute "workStatus"
-	// if exist "set' operation, and the value is "non"
+	// if exist "set' operation, and the value is "non", then worker grabs a new work to process
 	receiver := make(chan *etcd.Response, 1)
 	t.logger.Println(MapreduceTaskStatusPath(t.config.AppName, t.taskID, "workStatus"))
 	go t.etcdClient.Watch(MapreduceTaskStatusPath(t.config.AppName, t.taskID, "workStatus"), 0, true, receiver, stop)

@@ -2,9 +2,9 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net"
-	"fmt"
 	"os"
 	"strconv"
 
@@ -12,7 +12,6 @@ import (
 	"github.com/coreos/go-etcd/etcd"
 	"github.com/plutoshe/taskgraph/controller"
 	"github.com/plutoshe/taskgraph/example/topo"
-	"github.com/plutoshe/taskgraph/filesystem"
 	"github.com/taskgraph/taskgraph/framework"
 )
 
@@ -35,7 +34,7 @@ func main() {
 		log.Fatalf("Please specify azureAccountKey")
 	}
 
-	azureClient := filesystem.NewLocalFSClient()
+	// azureClient := filesystem.NewLocalFSClient()
 
 	mapperWorkDir := make([]mapreduce.WorkConfig, 0)
 
@@ -55,7 +54,6 @@ func main() {
 				" plutoshe/dockerhubautobuild:java",
 		}
 
-		
 		// newWork.UserProgram = []string{
 		// 	"b ../sample_user_server_go/processSentence/processSentence_server -type m -port " + strconv.Itoa(40000+inputM),
 		// }
@@ -78,10 +76,9 @@ func main() {
 		WorkNum:    uint64(*mapperNum),
 		WorkerNum:  uint64(*WorkerNum),
 
-		AppName:          *job,
-		EtcdURLs:         etcdURLs,
-		FilesystemClient: azureClient,
-		WorkDir:          mapperWorkDir,
+		AppName:  *job,
+		EtcdURLs: etcdURLs,
+		WorkDir:  mapperWorkDir,
 	}
 
 	ntask := uint64(*WorkerNum) + 1

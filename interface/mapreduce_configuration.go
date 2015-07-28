@@ -2,7 +2,6 @@ package mapreduce
 
 import (
 	"github.com/golang/protobuf/proto"
-	"github.com/plutoshe/taskgraph/filesystem"
 	"golang.org/x/net/context"
 )
 
@@ -19,10 +18,9 @@ type MapreduceConfig struct {
 	WorkerNum  uint64
 
 	//store the work, appname, and etcdurls
-	FilesystemClient filesystem.Client
-	WorkDir          []WorkConfig
-	AppName          string
-	EtcdURLs         []string
+	WorkDir  []WorkConfig
+	AppName  string
+	EtcdURLs []string
 
 	//optional, define the buffer size
 	ReaderBufferSize int
