@@ -42,8 +42,10 @@ func (t *workerTask) mapperProcedure(ctx context.Context, workID string, workCon
 
 	// Input file loading
 	for readFileID := 0; readFileID < len(workConfig.InputFilePath); readFileID++ {
-		buf = append(buf, &pb.KvPair{Key: "InputFile", Value: workConfig.InputFilePath[readFileID]})
+		buf = append(buf, &pb.KvPair{Key: "OutputFilePath", Value: workConfig.OutputFilePath[0]})
+		buf = append(buf, &pb.KvPair{Key: "InputFilePath", Value: workConfig.InputFilePath[readFileID]})
 		buf = append(buf, &pb.KvPair{Key: "ReducerNum", Value: strconv.FormatUint(t.config.ReducerNum, 10)})
+		buf = append(buf, &pb.KvPair{Key: "WorkID", Value: strconv.FormatUint(workID, 10)})
 		err := stream.Send(&pb.MapperRequest{buf})
 		if err != nil {
 			t.logger.Fatalln(err)
@@ -86,8 +88,8 @@ func (t *workerTask) reducerProcedure(ctx context.Context, workID string, workCo
 	}()
 
 	var buf []*pb.KvsPair
-	buf = append(buf, &pb.KvsPair{Key: "InputPath", Value: workConfig.InputFilePath})
-	buf = append(buf, &pb.KvsPair{Key: "Outputpaht", Value: workConfig.OutputFilePath})
+	buf = append(buf, &pb.KvsPair{Key: "InputFilePath", Value: workConfig.InputFilePath})
+	buf = append(buf, &pb.KvsPair{Key: "OutputFilePath", Value: workConfig.OutputFilePath})
 	buf = append(buf, &pb.KvsPair{Key: "SupplentConfig", Value: workConfig.SupplyContent})
 	err = stream.Send(&pb.ReducerRequest{buf})
 	if err != nil {

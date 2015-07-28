@@ -21,10 +21,6 @@ type MapreduceConfig struct {
 	WorkDir  []WorkConfig
 	AppName  string
 	EtcdURLs []string
-
-	//optional, define the buffer size
-	ReaderBufferSize int
-	WriterBufferSize int
 }
 
 // This structure decribes concrete setting of a work,

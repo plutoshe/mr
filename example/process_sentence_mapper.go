@@ -23,16 +23,16 @@ func main() {
 	WorkerNum := flag.Int("WorkerNum", 5, "WorkerNum")
 	reducerNum := flag.Int("reducerNum", 10, "reducerNum")
 	//      azureAccountName := flag.String("azureAccountName", "spluto", "azureAccountName")
-	azureAccountKey := flag.String("azureAccountKey", "a", "azureAccountKey")
+	// azureAccountKey := flag.String("azureAccountKey", "a", "azureAccountKey")
 	// outputDir := flag.String("outputDir", "0newmapreducepathformapreduce000", "outputDir")
 
 	flag.Parse()
 	if *job == "" {
 		log.Fatalf("Please specify a job name")
 	}
-	if *azureAccountKey == "" {
-		log.Fatalf("Please specify azureAccountKey")
-	}
+	// if *azureAccountKey == "" {
+	// 	log.Fatalf("Please specify azureAccountKey")
+	// }
 
 	// azureClient := filesystem.NewLocalFSClient()
 
