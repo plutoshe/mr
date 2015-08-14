@@ -12,12 +12,13 @@ import (
 )
 
 const (
-	address     = "192.168.59.103" //"192.168.59.103"
+	address     = "192.168.59.103"
 	defaultName = "world"
 )
 
 var (
 	port = flag.Int("port", 20000, "The server port")
+	// c    pb.MapperClient
 )
 
 func main() {
@@ -30,49 +31,46 @@ func main() {
 	}
 	defer conn.Close()
 
-	grpcServer := pb.NewMapperStreamClient(conn)
+	grpcServer := pb.NewReducerStreamClient(conn)
 
 	// Contact the server and print out its response.
 	fmt.Println("link server ", (address + fmt.Sprintf(":%d", *port)))
 
 	waitc := make(chan struct{})
-	stream, err := grpcServer.GetStreamEmitResult(context.Background())
+	stream, err := grpcServer.GetStreamCollectResult(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}
 	go func() {
 		for {
 			in, err := stream.Recv()
+			log.Println(in)
 			if err != nil && err != io.EOF {
 				log.Fatalf("Failed to receive a note : %v", err)
 				return
 			}
 			if err == io.EOF || (len(in.Arr) == 1 && in.Arr[0].Key == "Stop" && in.Arr[0].Value == "Stop") {
-				// read done.
+
 				close(waitc)
 				return
 			}
-
-			fmt.Println(in)
 		}
 	}()
+	var b []*pb.KvsPair
+	b = append(b, &pb.KvsPair{"a b c d e 。f g，", []string{"1", "2", "3"}})
+	b = append(b, &pb.KvsPair{"a b c d e 。f g，", []string{"1", "2", "3"}})
+	b = append(b, &pb.KvsPair{"a b c d e 。f g，", []string{"1", "2", "3"}})
+	b = append(b, &pb.KvsPair{"a b c d e 。f g，", []string{"1", "2", "3"}})
 
-	var b []*pb.KvPair
-	b = append(b, &pb.KvPair{"受到法律框架酸辣粉谁，是否。", ""})
-	b = append(b, &pb.KvPair{"sdf wedfsdf. . ， 。d.f.s！", ""})
-	b = append(b, &pb.KvPair{"地方！ dfg。 sdf。 sdf。 sdf， sdf，", ""})
-
-	stream.Send(&pb.MapperRequest{b})
-	stream.Send(&pb.MapperRequest{b})
+	stream.Send(&pb.ReducerRequest{b})
+	stream.Send(&pb.ReducerRequest{b})
 	b = nil
-	b = append(b, &pb.KvPair{"a a c dsdf e， f ｀！gww", ""})
-	stream.Send(&pb.MapperRequest{b})
+	b = append(b, &pb.KvsPair{"a a c dsdf。 e f gww", []string{""}})
+	stream.Send(&pb.ReducerRequest{b})
 
-	b = nil
-	b = append(b, &pb.KvPair{"aaaaaaaaaaaaaaaaaaaaaaaaaaaa", ""})
-	stream.Send(&pb.MapperRequest{b})
-
-	stream.Send(&pb.MapperRequest{})
+	b = append(b, &pb.KvsPair{"a a c dsdf e， f ｀！gww", []string{""}})
+	// stream.Send(&pb.ReducerRequest{b})
+	// stream.Send(&pb.ReducerRequest{})
 	stream.CloseSend()
 	<-waitc
 

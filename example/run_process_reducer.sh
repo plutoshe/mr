@@ -1,21 +1,20 @@
 #!/bin/sh
-go build process_sentence_mapper.go
+ETCDBIN=$GOPATH/etcd-v2.0.5-darwin-amd64
+#ETCDBIN=$GOPATH/etcd-v2.1.0-alpha.1-linux-amd64
 
-#ETCDBIN=$GOPATH/etcd-v2.0.5-darwin-amd64
-ETCDBIN=$GOPATH/etcd-v2.1.0-alpha.1-linux-amd64
 # clear etcd
-$ETCDBIN/etcdctl rm --recursive mapper+test/
+$ETCDBIN/etcdctl rm --recursive reducer+test/
 
 echo $azureAccountKey
-./process_sentence_mapper -job="mapper test" -type=c -azureAccountKey=$azureAccountKey > www.txt&
+./process_sentence_reducer -job="reducer test" -type=c -azureAccountKey=$azureAccountKey > www.txt&
 
 # need to wait for controller to setup
 sleep 2
-./process_sentence_mapper -job="mapper test" -type=t -azureAccountKey=$azureAccountKey > www1.txt &
-./process_sentence_mapper -job="mapper test" -type=t -azureAccountKey=$azureAccountKey > www2.txt &
-./process_sentence_mapper -job="mapper test" -type=t -azureAccountKey=$azureAccountKey > www3.txt &
-./process_sentence_mapper -job="mapper test" -type=t -azureAccountKey=$azureAccountKey > www4.txt &
-./process_sentence_mapper -job="mapper test" -type=t -azureAccountKey=$azureAccountKey > www5.txt &
+./process_sentence_reducer -job="reducer test" -type=t -azureAccountKey=$azureAccountKey > www1.txt &
+./process_sentence_reducer -job="reducer test" -type=t -azureAccountKey=$azureAccountKey > www2.txt &
+./process_sentence_reducer -job="reducer test" -type=t -azureAccountKey=$azureAccountKey > www3.txt &
+./process_sentence_reducer -job="reducer test" -type=t -azureAccountKey=$azureAccountKey > www4.txt &
+./process_sentence_reducer -job="reducer test" -type=t -azureAccountKey=$azureAccountKey > www5.txt &
 # ./ex_mapper -job="mapper test" -type=t -azureAccountKey=$azureAccountKey > www3.txt &
 # ./ex_mapper -job="mapper test" -type=t -azureAccountKey=$azureAccountKey > www4.txt &
 # ./ex_mapper -job="mapper test" -type=t -azureAccountKey=$azureAccountKey > www5.txt &
